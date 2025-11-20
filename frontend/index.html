@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Prompt → JSON (Frontend)</title>
+  <style>
+    body{font-family:system-ui,Arial;margin:0;background:#071025;color:#e6eef8;padding:18px}
+    .card{max-width:980px;margin:0 auto;background:#08142a;padding:18px;border-radius:10px}
+    textarea{width:100%;min-height:120px;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+    pre{background:#021028;padding:12px;border-radius:8px;white-space:pre-wrap; font-family:monospace}
+    button{padding:8px 12px;border-radius:8px;border:0;background:#6d28d9;color:white;cursor:pointer}
+    .muted{color:#94a3b8;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Prompt → Image JSON (Frontend)</h2>
+    <div class="muted">Type normal prompt and click Convert (requests server-side AI).</div>
+    <textarea id="prompt" placeholder='e.g. "masked guy waving hi like a YouTuber, colorful shards background, neon highlights, cheerful"'></textarea>
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+      <select id="engine">
+        <option value="stable">Stable Diffusion</option>
+        <option value="mid">Midjourney</option>
+        <option value="dalle">DALL·E</option>
+      </select>
+      <button id="convert">Convert → JSON</button>
+      <div id="status" class="muted"></div>
+    </div>
+
+    <h3 style="margin-top:16px">Result</h3>
+    <pre id="result">{ "prompt": "", "negative_prompt": "" }</pre>
+  </div>
+
+  <script>
+    const btn = document.getElementById('convert');
+    const promptEl = document.getElementById('prompt');
+    const resEl = document.getElementById('result');
+    const engineEl = document.getElementById('engine');
+    const status = document.getElementById('status');
+
+    btn.addEventListener('click', async ()=>{
+      const prompt = promptEl.value.trim();
+      if(!prompt){ alert('Please write a prompt.'); return; }
+      status.textContent = 'Converting…';
+      btn.disabled = true;
+
+      try {
+        const resp = await fetch('http://localhost:4000/api/convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, engine: engineEl.value })
+        });
+        const j = await resp.json();
+        if(!j.ok){
+          resEl.textContent = 'Error: ' + (j.error || JSON.stringify(j));
+        } else {
+          resEl.textContent = JSON.stringify(j.result, null, 2);
+        }
+      } catch (err){
+        resEl.textContent = 'Network / server error: ' + err.message;
+      } finally {
+        status.textContent = '';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
